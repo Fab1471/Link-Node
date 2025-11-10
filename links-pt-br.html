@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabri - Meus Canais | Node</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /* Reset básico */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* Variáveis de Cores (Cores Chave para o Estilo) */
+        :root {
+            --bg-dark: #07070a; /* Fundo muito escuro */
+            --primary-neon: #00ff41; /* Verde Matrix */
+            --secondary-neon: #00e0ff; /* Azul Ciano/Elétrico */
+            --text-light: #f0f0f0;
+            --text-muted: #888888;
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace; /* Fonte monoespaçada futurista */
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 60px 20px;
+            position: relative; /* Necessário para posicionar o canvas */
+            overflow: hidden; /* Evita barras de rolagem indesejadas */
+            z-index: 1; /* Garante que o conteúdo fique acima do canvas */
+        }
+
+        /* Canvas de Fundo Matrix */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Fica no fundo */
+            opacity: 0.2; /* Sutil */
+        }
+
+        /* Efeito de Scanline Sutíl no Body (Melhora a Imersão) */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                transparent 0,
+                rgba(0, 0, 0, 0.2) 1px,
+                transparent 2px
+            );
+            opacity: 0.1;
+            z-index: 1; /* Acima do canvas, abaixo do conteúdo */
+        }
+
+        h1, p.bio, footer, .holy-ghost, .links-container { position: relative; z-index: 2; }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 44px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-align: center;
+            color: var(--primary-neon);
+            text-shadow: 0 0 10px var(--primary-neon);
+            position: relative; /* Para ficar acima do canvas */
+            z-index: 2;
+        }
+        
+        h1 span {
+            color: var(--secondary-neon);
+        }
+
+        p.bio {
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--text-muted);
+            text-shadow: 0 0 3px rgba(0, 255, 65, 0.5);
+            position: relative; /* Para ficar acima do canvas */
+            z-index: 2;
+        }
+        
+        /* Container para centralizar e limitar a largura */
+        .links-container {
+            width: 100%;
+            max-width: 650px; 
+            position: relative; /* Para ficar acima do canvas */
+            z-index: 2;
+        }
+
+        .channel {
+            display: block;
+            width: 100%;
+            background-color: #1a1a2e; /* Base escura para o botão */
+            color: var(--text-light);
+            text-decoration: none;
+            padding: 18px 25px;
+            margin: 15px 0;
+            border-radius: 8px; /* Borda mais discreta */
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center; 
+            letter-spacing: 0.8px; 
+            white-space: nowrap; /* Garante que o texto não quebre */
+            
+            /* Borda Neon Elegante */
+            border: 2px solid var(--secondary-neon);
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+            
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .channel:hover {
+            background-color: #2c2c47; /* Escurece um pouco no hover */
+            transform: scale(1.01); 
+            box-shadow: 0 0 20px var(--primary-neon), 0 0 30px rgba(0, 224, 255, 0.8);
+            border-color: var(--primary-neon);
+        }
+        
+        .channel::before {
+            content: '>>';
+            position: absolute;
+            right: 20px;
+            color: var(--primary-neon);
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .channel:hover::before {
+            transform: translateX(5px);
+        }
+
+        footer {
+            margin-top: 60px;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            position: relative; /* Para ficar acima do canvas */
+            z-index: 2;
+        }
+
+        .holy-ghost {
+            margin-top: 30px;
+            font-size: 22px;
+            color: var(--primary-neon);
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 2px;
+            text-shadow: 0 0 12px var(--primary-neon), 0 0 20px rgba(0, 255, 65, 0.8);
+            animation: subtleGlow 2s ease-in-out infinite alternate;
+            position: relative; /* Para ficar acima do canvas */
+            z-index: 2;
+        }
+
+        @keyframes subtleGlow {
+            0% { opacity: 0.8; text-shadow: 0 0 8px var(--primary-neon); }
+            100% { opacity: 1; text-shadow: 0 0 15px var(--primary-neon), 0 0 25px rgba(0, 255, 65, 0.5); }
+        }
+
+        /* NOVO: Botão Voltar */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: var(--secondary-neon);
+            font-size: 14px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border: 1px solid var(--secondary-neon);
+            border-radius: 4px;
+            transition: all 0.2s;
+            z-index: 2;
+        }
+
+        .back-button:hover {
+            background-color: rgba(0, 224, 255, 0.1);
+            color: var(--primary-neon);
+            border-color: var(--primary-neon);
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <a href="index.html" class="back-button"><< Voltar</a> 
+
+    <h1>Fabri <span>//_</span></h1>
+    <p class="bio">// Seus canais favoritos em um só lugar. [ACESSO GARANTIDO] //</p>
+
+    <div class="links-container">
+        <a href="https://youtube.com/@iamfabri" target="_blank" class="channel">🌱 Fabri // Reflexões & Vida</a>
+        <a href="https://youtube.com/@teacher-fabri" target="_blank" class="channel">🎓 Teacher Fabri // Educação</a>
+        <a href="https://youtube.com/@shorts-fabri" target="_blank" class="channel">🎬 Fabri Shorts // Versão de bolso do Canal Fabri</a>
+        <a href="https://youtube.com/@initfabri" target="_blank" class="channel">🎮 Init Fabri // Games</a>
+        <a href="https://youtube.com/@eliterate.stream" target="_blank" class="channel">📖 Eliterate // Poesia & Literatura</a>
+        <a href="https://youtube.com/@ineffable.sounds" target="_blank" class="channel">☁️ Ineffable // Lo-fi & Chill</a>
+        <a href="https://youtube.com/@fabri.sessions" target="_blank" class="channel">🎵 Fabri Sessions // Música</a>
+    </div>
+
+    <p class="holy-ghost">[[ THE HOLY GHOST IS REAL ]]</p>
+
+    <footer>
+        > Desenvolvido por Fabri // TODOS OS DIREITOS RESERVADOS { 2025 }
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Define a largura e altura do canvas para preencher a janela
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Caracteres para a chuva Matrix
+        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;':\",.<>/?`~";
+        const fontSize = 16;
+        let columns = canvas.width / fontSize;
+
+        // Um array para cada coluna, armazenando a posição Y de cada "gota"
+        const drops = [];
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1; // Começa na primeira linha
+        }
+
+        function draw() {
+            // Efeito de "rastro": desenha um retângulo preto semi-transparente
+            ctx.fillStyle = 'rgba(7, 7, 10, 0.05)'; // Cor do fundo com transparência
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff41'; // Cor do texto verde neon
+            ctx.font = `${fontSize}px monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Manda a "gota" de volta para o topo se atingir o fundo
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                // Incrementa a posição Y da "gota"
+                drops[i]++;
+            }
+        }
+
+        // Redimensiona o canvas quando a janela é redimensionada
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Recalcula as colunas e reinicia os drops para ajustar ao novo tamanho
+            columns = canvas.width / fontSize;
+            drops.length = 0; // Limpa o array
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+        });
+
+        // Loop de animação
+        setInterval(draw, 33); // Aproximadamente 30 frames por segundo (1000ms / 30fps = 33ms)
+    </script>
+
+</body>
+</html>
